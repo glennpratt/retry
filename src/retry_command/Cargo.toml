@@ -1,0 +1,6 @@
+[package]
+name = "retry_command"
+version = "0.1.0"
+authors = ["Glenn Pratt <glennpratt@gmail.com>"]
+
+[dependencies]

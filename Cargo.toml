@@ -4,6 +4,5 @@ version = "0.0.1"
 authors = ["Glenn Pratt <glennpratt@gmail.com>"]
 
 [dependencies]
-derive_builder = "*"
-custom_derive = "*"
 getopts = "*"
+retry_command = { path = "src/retry_command" }

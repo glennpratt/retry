@@ -2,23 +2,16 @@
 name = "retry"
 version = "0.0.1"
 dependencies = [
- "custom_derive 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "derive_builder 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "getopts 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "retry_command 0.1.0",
 ]
-
-[[package]]
-name = "custom_derive"
-version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
-name = "derive_builder"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "getopts"
 version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "retry_command"
+version = "0.1.0"
 
