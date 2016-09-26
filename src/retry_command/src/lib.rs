@@ -14,11 +14,13 @@ pub struct RetryCommand {
     retry_delay: Duration,
     retry_timeout: Duration,
     retry_until: Vec<i32>,
-    pub retry_on: Vec<i32>,
+    retry_on: Option<Vec<i32>>,
     rewrite: Vec<(i32, i32)>,
     logger: Option<Box<Write>>
 }
 
+/// Builder for running a `Command` repeatedly until a desired state or timeout
+/// is reached.
 impl RetryCommand {
     /// Constructs a new `RetryCommand`. By default the command be run without
     /// retries. See `retry_timeout`.
@@ -27,7 +29,7 @@ impl RetryCommand {
             command: command,
             retry_timeout: Duration::from_secs(0),
             retry_until: vec![0],
-            retry_on: vec![], // Treating .is_empty() as retry_on any.
+            retry_on: None,
             retry_delay: Duration::from_secs(0),
             rewrite: vec![],
             logger: None
@@ -55,10 +57,10 @@ impl RetryCommand {
         self
     }
 
-    /// Vec of exit codes which represent an exit code that may be retried.
+    /// `Vec` of exit codes which represent an exit code that may be retried.
     /// By default, all non-zero exit codes are retried.
     pub fn retry_on(&mut self, value: Vec<i32>) -> &mut Self {
-        self.retry_on = value;
+        self.retry_on = Some(value);
         self
     }
 
@@ -68,7 +70,7 @@ impl RetryCommand {
         self
     }
 
-    /// If present, log message will be written to this device.
+    /// When provided, log messages will be written to this object.
     pub fn logger(&mut self, value: Box<Write>) -> &mut Self {
         self.logger = Some(value);
         self
@@ -92,25 +94,14 @@ impl RetryCommand {
         loop {
             let result = self.command.status();
 
-            let (mut code, msg_opt) = try!(result.exit_code());
+            let (code, msg_opt) = try!(result.exit_code());
 
             if let Some(msg) = msg_opt {
                 self.log(msg);
             }
 
-            if (self.retry_until.contains(&code)) ||
-               (!self.retry_on.is_empty() && !self.retry_on.contains(&code)) ||
-               ((Instant::now() - start) >= self.retry_timeout) {
-
-                // Only apply one rewrite, the last matching opt, after retries.
-                for &(from_code, to_code) in self.rewrite.iter().rev() {
-                    if from_code == code {
-                        code = to_code;
-                        break;
-                    }
-                }
-
-                return Ok((result, code));
+            if self.should_stop(code, start) {
+                return Ok((result, self.rewrite_code(code)));
             } else {
                 sleep(self.retry_delay);
             }
@@ -121,5 +112,26 @@ impl RetryCommand {
         if let Some(ref mut io) = self.logger {
             writeln!(io, "{:?} {}", self.command, msg).unwrap_or(());
         }
+    }
+
+    fn rewrite_code(&self, code: i32) -> i32 {
+        // Only apply one rewrite, the last match, hence rev().
+        for &(from_code, to_code) in self.rewrite.iter().rev() {
+            if from_code == code {
+                return to_code;
+            }
+        }
+        return code;
+    }
+
+    fn should_stop(&self, code: i32, start: Instant) -> bool {
+        if self.retry_until.contains(&code) {
+            return true;
+        }
+        let ret = match self.retry_on {
+            Some(ref retry_on) => !retry_on.contains(&code),
+            None => false
+        };
+        (ret || ((Instant::now() - start) >= self.retry_timeout))
     }
 }

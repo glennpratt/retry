@@ -94,15 +94,18 @@ fn from_opts(matches: getopts::Matches) -> Result<RetryCommand, CliError> {
         ));
     }
 
-    for retry_on in matches.opt_strs("retry-on") {
-        retry_cmd.retry_on.push(try!(parse(&retry_on)));
-    }
-
-    // Conditional to overwrite default only when present.
     if matches.opt_present("retry-until") {
         retry_cmd.retry_until(try!(
             matches.opt_strs("retry-until").iter().map(|retry_until|
               parse(retry_until)
+            ).collect()
+        ));
+    }
+
+    if matches.opt_present("retry-on") {
+        retry_cmd.retry_on(try!(
+            matches.opt_strs("retry-on").iter().map(|retry_on|
+              parse(retry_on)
             ).collect()
         ));
     }
